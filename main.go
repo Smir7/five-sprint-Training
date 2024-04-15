@@ -21,11 +21,16 @@ type Training struct {
 }
 
 func (t Training) distance() float64 {
-	return float64(t.Action) * t.LenStep / 1000
+	return float64(t.Action) * t.LenStep / MInKm
 }
-
 func (t Training) meanSpeed() float64 {
-	return t.distance() / t.Duration.Hours()
+
+	result := t.distance() / t.Duration.Hours()
+
+	if t.Duration.Hours() == 0 {
+		return 0
+	}
+	return result
 }
 
 func (t Training) Calories() float64 {
@@ -70,10 +75,11 @@ type Running struct {
 }
 
 func (r Running) Calories() float64 {
-	return (18*r.Training.meanSpeed() + 1.79) * r.Training.Weight / 1000 * float64(r.Training.Duration.Hours()*60)
+	return (CaloriesMeanSpeedMultiplier*r.Training.meanSpeed() + CaloriesMeanSpeedShift) * r.Training.Weight / MInKm * float64(r.Training.Duration.Hours()*MinInHours)
 }
 
 func (r Running) TrainingInfo() InfoMessage {
+
 	return InfoMessage{TrainingType: r.TrainingType, Duration: r.Duration,
 		Distance: r.distance(), Speed: r.meanSpeed(), Calories: r.Calories()}
 }
@@ -90,7 +96,7 @@ type Walking struct {
 }
 
 func (w Walking) Calories() float64 {
-	return ((0.035*w.Training.Weight + (w.meanSpeed()*2/w.Height)*0.029*w.Training.Weight) * float64(w.Training.Duration.Hours()*60))
+	return ((CaloriesWeightMultiplier*w.Training.Weight + (w.meanSpeed()*2/w.Height)*CaloriesSpeedHeightMultiplier*w.Training.Weight) * float64(w.Training.Duration.Hours()*MinInHours))
 }
 
 func (w Walking) TrainingInfo() InfoMessage {
@@ -111,11 +117,16 @@ type Swimming struct {
 }
 
 func (s Swimming) meanSpeed() float64 {
-	return (float64(s.LengthPool) * float64(s.CountPool)) / 1000 / float64(s.Training.Duration.Hours())
+	if s.Training.Duration.Hours() == 0 {
+		return 0
+	} else if MInKm == 0 {
+		return 0
+	}
+	return (float64(s.LengthPool) * float64(s.CountPool)) / MInKm / float64(s.Training.Duration.Hours())
 }
 
 func (s Swimming) Calories() float64 {
-	return (s.meanSpeed() + 1.1) * 2 * s.Training.Weight * float64(s.Training.Duration.Hours())
+	return (s.meanSpeed() + SwimmingCaloriesMeanSpeedShift) * SwimmingCaloriesWeightMultiplier * s.Training.Weight * float64(s.Training.Duration.Hours())
 }
 
 func (s Swimming) TrainingInfo() InfoMessage {
